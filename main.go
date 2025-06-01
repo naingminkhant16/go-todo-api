@@ -36,11 +36,44 @@ func registerRoutes() *mux.Router {
 	router.HandleFunc("/tasks/{id}", getTaskById).Methods("GET")
 	router.HandleFunc("/tasks", createTask).Methods("POST")
 	router.HandleFunc("/tasks/{id}", deleteTaskById).Methods("DELETE")
+	router.HandleFunc("/tasks/{id}", updateById).Methods("PUT")
 	return router
 }
 
 func generateNewId() int {
 	return tasks[len(tasks)-1].Id + 1
+}
+
+func updateById(writer http.ResponseWriter, request *http.Request) {
+	writer.Header().Set("Content-Type", "application/json")
+	idStr := mux.Vars(request)["id"]
+	id, err := strconv.Atoi(idStr)
+	if err != nil {
+		writer.WriteHeader(http.StatusBadRequest)
+		return
+	}
+
+	var task Task
+	err = json.NewDecoder(request.Body).Decode(&task)
+	if err != nil {
+		writer.WriteHeader(http.StatusBadRequest)
+		return
+	}
+
+	var found bool = false
+	for index, t := range tasks {
+		if t.Id != id {
+			continue
+		}
+		found = true
+		t.Name = task.Name
+		tasks[index] = t
+	}
+	if !found {
+		writer.WriteHeader(http.StatusNotFound)
+		return
+	}
+	writer.WriteHeader(http.StatusOK)
 }
 
 func deleteTaskById(writer http.ResponseWriter, request *http.Request) {
